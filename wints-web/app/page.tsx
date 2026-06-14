@@ -6,13 +6,23 @@ import MetricsPanel from "@/components/MetricsPanel";
 import TargetCard from "@/components/TargetCard";
 import { store } from "@/lib/mqttStore";
 import { useStore } from "@/lib/useStore";
-import { ChevronDown, ChevronUp, Square } from "lucide-react";
+import { Activity, ChevronDown, ChevronUp, Clock3, ShieldCheck, Sparkles, Square, Wifi } from "lucide-react";
 import { useEffect } from "react";
 
 const TARGET_IDS = Array.from({ length: 10 }, (_, i) => `T-${String(i + 1).padStart(2, "0")}`);
 
+const STATUS_COPY: Record<string, { label: string; accent: string; detail: string }> = {
+    connected: { label: "Connected", accent: "text-green", detail: "Commands are live." },
+    connecting: { label: "Connecting", accent: "text-yellow", detail: "Negotiating broker session." },
+    disconnected: { label: "Offline", accent: "text-overlay", detail: "Broker disconnected." },
+    error: { label: "Error", accent: "text-red", detail: "Check MQTT credentials." },
+};
+
 export default function Home() {
     useStore(); // subscribe to global store
+    const status = STATUS_COPY[store.connection];
+    const onlineCount = store.getOnlineCount();
+    const faultCount = store.getFaultCount();
 
     // Auto-connect from env vars on mount
     useEffect(() => {
@@ -39,22 +49,25 @@ export default function Home() {
                     </div>
 
                     {/* Broadcast commands */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-end">
                         <span className="text-[10px] text-overlay font-bold mono hidden sm:block">BROADCAST:</span>
                         <button
                             onClick={() => store.publishCommand("broadcast", "raise")}
+                            aria-label="Raise all targets"
                             className="flex items-center gap-1.5 px-3.5 py-1.5 bg-green/10 hover:bg-green/20 hover:shadow-[0_0_12px_rgba(166,227,161,0.25)] text-green border border-green/35 rounded-lg text-xs mono font-bold transition-all active:scale-95 hover:-translate-y-0.5"
                         >
                             <ChevronUp size={12} className="animate-bounce" /> RAISE ALL
                         </button>
                         <button
                             onClick={() => store.publishCommand("broadcast", "stop")}
+                            aria-label="Stop all targets"
                             className="flex items-center gap-1.5 px-3.5 py-1.5 bg-yellow/10 hover:bg-yellow/20 hover:shadow-[0_0_12px_rgba(249,226,175,0.25)] text-yellow border border-yellow/35 rounded-lg text-xs mono font-bold transition-all active:scale-95 hover:-translate-y-0.5"
                         >
                             <Square size={10} /> STOP ALL
                         </button>
                         <button
                             onClick={() => store.publishCommand("broadcast", "lower")}
+                            aria-label="Lower all targets"
                             className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue/10 hover:bg-blue/20 hover:shadow-[0_0_12px_rgba(137,180,250,0.25)] text-blue border border-blue/35 rounded-lg text-xs mono font-bold transition-all active:scale-95 hover:-translate-y-0.5"
                         >
                             <ChevronDown size={12} className="animate-bounce" /> LOWER ALL
@@ -69,16 +82,72 @@ export default function Home() {
             {/* ── Connection bar ── */}
             <ConnectionBar
                 state={store.connection}
-                onlineCount={store.getOnlineCount()}
-                faultCount={store.getFaultCount()}
+                onlineCount={onlineCount}
+                faultCount={faultCount}
             />
 
+            {/* ── Live summary strip ── */}
+            <section className="px-4 pt-4">
+                <div className="grid gap-3 lg:grid-cols-[1.3fr_1fr_1fr]">
+                    <div className="glass-card rounded-2xl border border-surface0/50 p-4 shadow-lg">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-overlay mono font-bold">
+                                    <Sparkles size={12} className="text-blue" />
+                                    Live cockpit
+                                </div>
+                                <h1 className="text-lg sm:text-xl font-black tracking-tight text-text">
+                                    WINTS Control Room
+                                </h1>
+                                <p className="text-sm text-overlay leading-relaxed max-w-2xl">
+                                    Monitor 10 targets, push broadcast commands, and watch telemetry update in real time. The dashboard is tuned for secure WebSocket MQTT connections, which is exactly what Vercel likes to see.
+                                </p>
+                            </div>
+                            <div className="hidden sm:flex h-12 w-12 items-center justify-center rounded-2xl border border-blue/25 bg-blue/10 text-blue shadow-[0_0_16px_rgba(137,180,250,0.16)]">
+                                <Activity size={22} />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="glass-card rounded-2xl border border-surface0/50 p-4 shadow-lg">
+                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-overlay mono font-bold">
+                            <Clock3 size={12} className="text-yellow" />
+                            System status
+                        </div>
+                        <div className="mt-3 flex items-end justify-between gap-3">
+                            <div>
+                                <div className={`text-2xl font-black ${status.accent}`}>{status.label}</div>
+                                <div className="text-sm text-overlay mt-1">{status.detail}</div>
+                            </div>
+                            <div className="rounded-xl border border-surface0/45 bg-crust/60 px-3 py-2 text-right">
+                                <div className="text-[10px] uppercase tracking-widest text-overlay mono">Online</div>
+                                <div className="text-xl font-black text-green mono">{onlineCount}/10</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="glass-card rounded-2xl border border-surface0/50 p-4 shadow-lg">
+                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-overlay mono font-bold">
+                            <ShieldCheck size={12} className="text-green" />
+                            Deploy note
+                        </div>
+                        <p className="mt-3 text-sm text-overlay leading-relaxed">
+                            Use a secure MQTT WebSocket broker for production. On Vercel, prefer <span className="text-text mono font-bold">wss://</span> and avoid plain <span className="text-text mono font-bold">ws://</span> connections.
+                        </p>
+                        <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-surface0/45 bg-surface0/25 px-3 py-1 text-[10px] mono text-text">
+                            <Wifi size={11} className="text-blue" />
+                            {faultCount} fault{faultCount === 1 ? "" : "s"} tracked
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* ── Main body ── */}
-            <div className="flex flex-1 overflow-hidden">
+            <div className="flex flex-1 overflow-hidden pt-4">
 
                 {/* Target card grid */}
-                <main className="flex-1 overflow-y-auto p-4">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                <main className="flex-1 overflow-y-auto px-4 pb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
                         {TARGET_IDS.map((id) => (
                             <TargetCard key={id} target={store.targets[id]} />
                         ))}
@@ -86,7 +155,7 @@ export default function Home() {
                 </main>
 
                 {/* Right panel — metrics + event log */}
-                <aside className="hidden lg:flex flex-col w-56 border-l border-surface0 overflow-hidden">
+                <aside className="hidden lg:flex flex-col w-72 border-l border-surface0 overflow-hidden sticky top-[110px] max-h-[calc(100vh-110px)]">
                     <MetricsPanel />
                     <div className="flex-1 overflow-hidden border-t border-surface0 flex flex-col">
                         <EventLog />
@@ -95,7 +164,7 @@ export default function Home() {
             </div>
 
             {/* ── Mobile event log (bottom) ── */}
-            <div className="lg:hidden border-t border-surface0 h-36 overflow-hidden flex flex-col">
+            <div className="lg:hidden border-t border-surface0 h-40 overflow-hidden flex flex-col">
                 <EventLog />
             </div>
 

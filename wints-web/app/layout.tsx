@@ -17,7 +17,17 @@ export const metadata: Metadata = {
         title: "WINTS Control Room — Space-Age Telemetry",
         description: "Physics-accurate distributed embedded range simulation",
         type: "website",
+        siteName: "WINTS Control Room",
     },
+    twitter: {
+        card: "summary_large_image",
+        title: "WINTS Control Room — Space-Age Telemetry",
+        description: "Physics-accurate distributed embedded range simulation",
+    },
+};
+
+export const viewport = {
+    themeColor: "#0c0c14",
 };
 
 export default function RootLayout({
