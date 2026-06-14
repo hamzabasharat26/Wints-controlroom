@@ -3,12 +3,22 @@ import { store } from "@/lib/mqttStore";
 import { ExternalLink, Wifi } from "lucide-react";
 import { useEffect, useState } from "react";
 
-export default function BrokerConnect() {
+interface Props {
+    defaultOpen?: boolean;
+}
+
+export default function BrokerConnect({ defaultOpen = false }: Props) {
     const [host, setHost] = useState("");
     const [port, setPort] = useState("8884");
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [show, setShow] = useState(false);
+
+    useEffect(() => {
+        if (defaultOpen) {
+            setShow(true);
+        }
+    }, [defaultOpen]);
 
     // Pre-fill from env vars
     useEffect(() => {

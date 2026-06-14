@@ -11,6 +11,13 @@ import { useEffect } from "react";
 
 const TARGET_IDS = Array.from({ length: 10 }, (_, i) => `T-${String(i + 1).padStart(2, "0")}`);
 
+const brokerConfigured = Boolean(
+    process.env.NEXT_PUBLIC_MQTT_HOST &&
+    process.env.NEXT_PUBLIC_MQTT_PORT &&
+    process.env.NEXT_PUBLIC_MQTT_USERNAME &&
+    process.env.NEXT_PUBLIC_MQTT_PASSWORD,
+);
+
 const STATUS_COPY: Record<string, { label: string; accent: string; detail: string }> = {
     connected: { label: "Connected", accent: "text-green", detail: "Commands are live." },
     connecting: { label: "Connecting", accent: "text-yellow", detail: "Negotiating broker session." },
@@ -20,7 +27,9 @@ const STATUS_COPY: Record<string, { label: string; accent: string; detail: strin
 
 export default function Home() {
     useStore(); // subscribe to global store
-    const status = STATUS_COPY[store.connection];
+    const status = brokerConfigured
+        ? STATUS_COPY[store.connection]
+        : { label: "Setup required", accent: "text-yellow", detail: "Add MQTT broker variables in Vercel." };
     const onlineCount = store.getOnlineCount();
     const faultCount = store.getFaultCount();
 
@@ -75,7 +84,7 @@ export default function Home() {
                     </div>
 
                     {/* Broker config */}
-                    <BrokerConnect />
+                    <BrokerConnect defaultOpen={!brokerConfigured} />
                 </div>
             </header>
 
@@ -139,6 +148,31 @@ export default function Home() {
                             {faultCount} fault{faultCount === 1 ? "" : "s"} tracked
                         </div>
                     </div>
+
+                    {!brokerConfigured && (
+                        <div className="lg:col-span-3 glass-card rounded-2xl border border-yellow/35 bg-yellow/10 p-4 shadow-lg">
+                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                    <div className="text-[10px] uppercase tracking-[0.25em] text-yellow mono font-bold">
+                                        MQTT setup needed
+                                    </div>
+                                    <h2 className="mt-2 text-lg font-black text-text">
+                                        Connect a broker to unlock live telemetry
+                                    </h2>
+                                    <p className="mt-2 text-sm text-overlay max-w-3xl leading-relaxed">
+                                        The dashboard is deployed correctly, but it needs a secure MQTT WebSocket broker to show live data.
+                                        Add the Vercel environment variables, then redeploy.
+                                    </p>
+                                </div>
+                                <div className="flex flex-wrap gap-2 text-[10px] mono text-text">
+                                    <span className="rounded-full border border-yellow/25 bg-crust/70 px-3 py-1">NEXT_PUBLIC_MQTT_HOST</span>
+                                    <span className="rounded-full border border-yellow/25 bg-crust/70 px-3 py-1">NEXT_PUBLIC_MQTT_PORT</span>
+                                    <span className="rounded-full border border-yellow/25 bg-crust/70 px-3 py-1">NEXT_PUBLIC_MQTT_USERNAME</span>
+                                    <span className="rounded-full border border-yellow/25 bg-crust/70 px-3 py-1">NEXT_PUBLIC_MQTT_PASSWORD</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </section>
 
