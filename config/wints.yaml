@@ -1,0 +1,149 @@
+# WINTS Configuration — All simulation parameters in one place
+# Every magic number lives here, not in code.
+# Source references cited inline.
+
+broker:
+  host: "localhost"
+  port: 1883
+  keepalive: 60
+  reconnect_backoff_base_s: 1.0
+  reconnect_backoff_max_s: 60.0
+  reconnect_jitter_max_s: 5.0
+
+simulation:
+  time_acceleration_factor: 120   # 1 real second = 120 sim seconds (battery/solar)
+  physics_dt_s: 0.001             # motor ODE timestep: 1ms
+  telemetry_interval_s: 2.0       # real-time seconds between telemetry publishes
+  status_publish_on_change: true
+  state_persist_file: "logs/target_state.json"
+
+# DC permanent magnet motor — typical 12V/10A geared unit
+# Source: Generic MY1016 / Unite Motor datasheet characteristics
+motor:
+  resistance_ohm: 0.5            # Armature resistance R
+  inductance_h: 0.002            # Armature inductance L (2 mH)
+  torque_constant: 0.08          # K_t (N·m/A), equals K_e for PMDC
+  back_emf_constant: 0.08        # K_e (V·s/rad), matches K_t
+  rotor_inertia_kg_m2: 0.02     # J — rotor + geared load inertia
+  viscous_friction: 0.01         # B (N·m·s/rad)
+  load_torque_nm: 0.1            # T_load — gravity + friction at worst angle
+  overcurrent_threshold_a: 12.0  # BTS7960 sense pin limit
+  inrush_window_ms: 300          # Allow startup current spike
+  stall_omega_threshold: 0.5     # rad/s — below this = stall candidate
+  stall_current_threshold_a: 8.0 # A — above this during low ω = stall
+  stall_duration_ms: 2000        # Sustained stall duration → fault
+  theta_max_rad: 1.5708          # π/2 — 90° rotation from DOWN to UP
+  supply_voltage_v: 12.0         # Nominal bus voltage
+
+# Limit switch debounce model
+limit_switch:
+  bounce_count_min: 3
+  bounce_count_max: 8
+  bounce_duration_min_ms: 5
+  bounce_duration_max_ms: 50
+  debounce_period_ms: 20          # Schmitt trigger filter period
+
+# LiFePO4 battery — 4S 100Ah pack
+# Source: EVE LF100LA datasheet OCV-SOC curve
+battery:
+  capacity_ah: 100
+  series_cells: 4
+  coulombic_efficiency: 0.995
+  r_internal_base_ohm: 0.005      # Per cell (20 mΩ total pack)
+  bms_cutoff_soc_pct: 10
+  overcharge_voltage_per_cell_v: 3.70
+  undervoltage_per_cell_v: 2.50
+  over_temperature_c: 60
+  quiescent_load_w: 7.0           # MCU + radio + cameras standby
+  camera_streaming_load_w: 15.0
+  # OCV-SOC lookup table [SOC%, OCV per cell in V]
+  # Source: EVE Energy LF100LA datasheet, 0.2C discharge curve
+  ocv_soc_table:
+    - [0, 2.50]
+    - [5, 3.00]
+    - [10, 3.20]
+    - [15, 3.23]
+    - [20, 3.25]
+    - [30, 3.27]
+    - [40, 3.28]
+    - [50, 3.30]
+    - [60, 3.31]
+    - [70, 3.33]
+    - [80, 3.35]
+    - [90, 3.40]
+    - [95, 3.50]
+    - [100, 3.65]
+  # R_internal temperature derating [temp_C, multiplier]
+  r_internal_temp_table:
+    - [-20, 2.00]
+    - [-10, 1.60]
+    - [0, 1.30]
+    - [10, 1.10]
+    - [25, 1.00]
+    - [40, 0.90]
+    - [55, 0.95]
+
+# 200W monocrystalline solar panel
+solar:
+  panel_efficiency: 0.22          # 22% — modern monocrystalline
+  panel_area_m2: 1.0
+  mppt_efficiency: 0.95
+  peak_irradiance_w_m2: 1000     # STC (Standard Test Conditions)
+  sunrise_h: 6.0                  # Sim time hours
+  sunset_h: 18.0
+  cloud_noise_std_w_m2: 50       # Gaussian cloud variation σ
+  max_charge_current_a: 20.0     # 0.2C safe continuous for 100Ah
+
+# RF link — 5 GHz 802.11n (Ubiquiti airMAX-style)
+# Source: Ubiquiti NanoBeam 5AC Gen2 datasheet
+rf_link:
+  frequency_hz: 5.0e9
+  tx_power_dbm: 23               # 200 mW typical airMAX
+  tx_antenna_gain_dbi: 16        # Sector antenna at control room
+  rx_antenna_gain_dbi: 23        # NanoBeam dish at target
+  misc_losses_db: 3              # Cable + connector + fade margin
+  shadow_std_db: 6               # Log-normal shadowing σ
+  shadow_fade_duration_sim_s: 30
+  shadow_fade_multiplier: 2.0    # σ doubles during fading event
+  # PER breakpoints from RSSI
+  per_good_rssi_dbm: -65         # PER=0 above this
+  per_marginal_rssi_dbm: -80     # PER linearly 0→0.3
+  per_bad_rssi_dbm: -95          # PER linearly 0.3→1.0
+
+# Target positions — simulated locations in the 10 km² range
+targets:
+  T-01: {distance_m: 500,  bearing_deg: 10,  initial_soc: 85}
+  T-02: {distance_m: 1200, bearing_deg: 35,  initial_soc: 72}
+  T-03: {distance_m: 2500, bearing_deg: 80,  initial_soc: 60}
+  T-04: {distance_m: 800,  bearing_deg: 120, initial_soc: 90}
+  T-05: {distance_m: 3500, bearing_deg: 160, initial_soc: 55}
+  T-06: {distance_m: 1800, bearing_deg: 200, initial_soc: 78}
+  T-07: {distance_m: 4200, bearing_deg: 240, initial_soc: 22}  # Critically low SOC for demo
+  T-08: {distance_m: 600,  bearing_deg: 280, initial_soc: 95}
+  T-09: {distance_m: 5000, bearing_deg: 310, initial_soc: 30}
+  T-10: {distance_m: 1500, bearing_deg: 350, initial_soc: 68}
+
+# MediaMTX RTSP server configuration
+mediamtx:
+  binary_path: "tools/mediamtx/mediamtx.exe"
+  config_path: "config/mediamtx.yml"
+  rtsp_port: 8554
+  samples_dir: "video_server/samples"
+
+# Ports allocation
+ports:
+  mqtt_broker: 1883
+  rtsp_server: 8554
+  dashboard_metrics: 9200
+  simulator_metrics_base: 9101    # T-01=9101, T-02=9102, ..., T-10=9110
+  fault_injector_base: 9301       # T-01=9301, T-02=9302, ..., T-10=9310
+
+# Logging configuration
+logging:
+  level: "info"
+  console_renderer: true
+  file_output: true
+  file_dir: "logs"
+  max_file_size_mb: 50
+  backup_count: 5
+  session_replay: true

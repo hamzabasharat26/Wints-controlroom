@@ -1,0 +1,15 @@
+# WINTS Runtime Dependencies
+# Pin exact versions for reproducibility
+PyQt6==6.7.0
+paho-mqtt==2.1.0
+pydantic==2.7.0
+structlog==24.1.0
+numpy==1.26.4
+scipy==1.13.0
+prometheus-client==0.20.0
+click==8.1.7
+rich==13.7.1
+pyqtgraph==0.13.7
+opencv-python==4.9.0.80
+PyYAML==6.0.1
+aiohttp==3.9.5

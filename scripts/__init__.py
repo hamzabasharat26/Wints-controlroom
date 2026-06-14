@@ -1,0 +1,1 @@
+"""WINTS CLI scripts package."""

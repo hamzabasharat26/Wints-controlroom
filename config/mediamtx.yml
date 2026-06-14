@@ -1,0 +1,87 @@
+# MediaMTX Configuration — WINTS RTSP Video Server (v1.9.0 compatible)
+# Uses runOnDemand with ffmpeg to loop MP4 test patterns.
+# 10 targets × 2 cameras = 20 RTSP streams.
+#
+# Stream URLs: rtsp://127.0.0.1:8554/wints/<TARGET>/<CAM>
+#   e.g.  rtsp://127.0.0.1:8554/wints/T-01/front
+
+# General
+logLevel: info
+logDestinations: [stdout]
+
+# RTSP
+rtsp: yes
+rtspAddress: :8554
+protocols: [tcp]
+
+# API (for health-checks and stream listing)
+api: yes
+apiAddress: :9997
+
+# HLS / WebRTC / SRT all off to save resources
+hls: no
+webrtc: no
+srt: no
+
+# Paths — one entry per stream, looped via ffmpeg
+paths:
+  wints/T-01/front:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-01-front.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-01/rear:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-01-rear.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-02/front:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-02-front.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-02/rear:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-02-rear.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-03/front:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-03-front.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-03/rear:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-03-rear.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-04/front:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-04-front.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-04/rear:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-04-rear.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-05/front:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-05-front.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-05/rear:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-05-rear.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-06/front:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-06-front.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-06/rear:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-06-rear.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-07/front:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-07-front.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-07/rear:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-07-rear.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-08/front:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-08-front.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-08/rear:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-08-rear.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-09/front:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-09-front.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-09/rear:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-09-rear.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-10/front:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-10-front.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
+  wints/T-10/rear:
+    runOnDemand: C:\Users\DELL LATITUDE\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe -re -stream_loop -1 -i video_server/samples/target-10-rear.mp4 -c copy -f rtsp rtsp://127.0.0.1:$RTSP_PORT/$RTSP_PATH
+    runOnDemandRestart: yes
