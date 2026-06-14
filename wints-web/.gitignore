@@ -1,0 +1,19 @@
+# Next.js
+.next/
+out/
+build/
+
+# Dependencies
+node_modules/
+
+# Env (contains secrets — never commit .env.local)
+.env.local
+.env*.local
+
+# Vercel
+.vercel/
+
+# Misc
+.DS_Store
+*.log
+Thumbs.db

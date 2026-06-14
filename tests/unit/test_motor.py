@@ -133,7 +133,13 @@ class TestMotorLimitSwitches:
 
     def test_upper_limit_stops_motor(self) -> None:
         """Motor stops when reaching upper limit during RAISE."""
-        motor = MotorSimulator()
+        from target_simulator.physics.motor import LimitSwitchConstants
+        no_bounce = LimitSwitchConstants(
+            bounce_count_min=0,
+            bounce_count_max=0,
+            debounce_period_ms=0.0,
+        )
+        motor = MotorSimulator(limit_constants=no_bounce)
         motor.command_raise()
         # Run until motor reaches upper limit
         for i in range(10000):

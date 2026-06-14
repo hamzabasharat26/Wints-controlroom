@@ -5,9 +5,12 @@
 **Physics-accurate distributed embedded system simulation for military range control**
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Next.js](https://img.shields.io/badge/Next.js-14.2-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Vercel](https://img.shields.io/badge/Vercel-Deployed-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com)
 [![PyQt6](https://img.shields.io/badge/PyQt6-6.7.0-41CD52?style=for-the-badge&logo=qt&logoColor=white)](https://riverbankcomputing.com/software/pyqt/)
 [![MQTT](https://img.shields.io/badge/MQTT-Mosquitto_v2-660066?style=for-the-badge&logo=eclipsemosquitto&logoColor=white)](https://mosquitto.org)
-[![Tests](https://img.shields.io/badge/Tests-66%20Passed-brightgreen?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-66_Passed-brightgreen?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
 [![mypy](https://img.shields.io/badge/mypy-strict_0_errors-blue?style=for-the-badge)](https://mypy-lang.org)
 [![ruff](https://img.shields.io/badge/ruff-0_errors-orange?style=for-the-badge)](https://docs.astral.sh/ruff/)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
@@ -34,6 +37,8 @@
 - [Physics Engine](#physics-engine)
 - [Fault Injection](#fault-injection)
 - [Quickstart](#quickstart)
+- [Web Dashboard](#web-dashboard)
+- [Vercel Deployment & GitHub Integration](#vercel-deployment--github-integration)
 - [CLI Reference](#cli-reference)
 - [Project Structure](#project-structure)
 - [Configuration](#configuration)
@@ -295,6 +300,80 @@ python -m scripts.wints demo
 3. Launches 10 target simulators (T-07 faulted, T-09 offline)
 4. Opens the PyQt6 control room dashboard
 5. Video feeds appear in each card within ~4 seconds
+
+---
+
+## Web Dashboard
+
+In addition to the desktop GUI, WINTS includes a space-age, responsive **Next.js Web Dashboard** (`wints-web`) styled with the premium Catppuccin Mocha color scheme and fluid micro-animations. It uses browser-native WebSockets to connect directly to your MQTT broker, operating entirely on the client side without needing any server-side database.
+
+### Local Development Setup
+To boot the Web Dashboard locally on your computer:
+1. Navigate to the frontend directory:
+   ```powershell
+   cd wints-web
+   ```
+2. Install dependencies:
+   ```powershell
+   npm install
+   ```
+3. Copy environment configuration:
+   ```powershell
+   copy .env.example .env.local
+   ```
+   Open `.env.local` and fill in your MQTT broker credentials (such as a HiveMQ Cloud free tier instance).
+4. Launch the Next.js local development server:
+   ```powershell
+   npm run dev
+   ```
+5. Visit [http://localhost:3000](http://localhost:3000) to view the live dashboard.
+
+---
+
+## Vercel Deployment & GitHub Integration
+
+Because the web application compiles to static assets and connects directly via WebSockets from the user's browser, you can deploy it to **Vercel** for free and run it globally.
+
+### 1. Push to GitHub Repo
+To prepare the project and push it to your GitHub account:
+1. Initialize git in the root folder (if not already initialized):
+   ```powershell
+   git init
+   ```
+2. Add all files (the `.gitignore` is configured to keep virtual environments, downloaded binaries, and secrets out of version control):
+   ```powershell
+   git add .
+   ```
+3. Commit your changes:
+   ```powershell
+   git commit -m "feat: polish dashboard UI/UX and prepare for Vercel deployment"
+   ```
+4. Create a new repository on your GitHub account (leave it empty without templates).
+5. Run the following commands to link your repository and push:
+   ```powershell
+   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+   git branch -M main
+   git push -u origin main
+   ```
+
+### 2. Deploy to Vercel Dashboard
+To host the frontend on Vercel:
+1. Log in to [Vercel](https://vercel.com) using your GitHub account.
+2. Click **Add New** > **Project**.
+3. Import your `Wints-controlroom` repository.
+4. Set the following under **Project Settings**:
+   - **Framework Preset**: `Next.js`
+   - **Root Directory**: Select `wints-web` (click Edit and select the `wints-web` subfolder)
+5. Expand **Environment Variables** and add the variables to configure your MQTT WebSocket connection:
+   - `NEXT_PUBLIC_MQTT_HOST` (e.g. `your-cluster.s1.eu.hivemq.cloud`)
+   - `NEXT_PUBLIC_MQTT_PORT` (e.g. `8884` for secure WebSocket connections)
+   - `NEXT_PUBLIC_MQTT_USERNAME` (username for the broker)
+   - `NEXT_PUBLIC_MQTT_PASSWORD` (password for the broker)
+6. Click **Deploy**. Vercel will build the frontend assets.
+7. Once build completes, open your live Vercel URL!
+
+> [!IMPORTANT]
+> Because Vercel serves pages over secure HTTPS, browser security models block unencrypted WebSockets (`ws://`). You **must** configure a secure WebSocket connection (`wss://`) on a secure port (like `8884` for HiveMQ Cloud) with a valid SSL certificate.
 
 ---
 
