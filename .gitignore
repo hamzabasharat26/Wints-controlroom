@@ -54,3 +54,12 @@ coverage.xml
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
+
+# ── Scratch / debug scripts ───────────────────────────────────────────────────
+scratch/
+
+# ── Runtime log text files ────────────────────────────────────────────────────
+wints_log_*.txt
+
+# ── VSCode user settings (keep launch.json) ───────────────────────────────────
+.vscode/settings.json

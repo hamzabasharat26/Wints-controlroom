@@ -1,24 +1,26 @@
 <div align="center">
 
-# WINTS — Wireless Integrated Network Target System
+# ⚡ WINTS — Wireless Integrated Network Target System
+
+**Physics-accurate distributed embedded system simulation for military range control**
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![PyQt6](https://img.shields.io/badge/PyQt6-6.7.0-41CD52?style=for-the-badge&logo=qt&logoColor=white)](https://riverbankcomputing.com/software/pyqt/)
-[![MQTT](https://img.shields.io/badge/MQTT-Mosquitto-660066?style=for-the-badge&logo=eclipsemosquitto&logoColor=white)](https://mosquitto.org)
-[![Tests](https://img.shields.io/badge/Tests-66%2F66%20Passing-brightgreen?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
-[![mypy](https://img.shields.io/badge/mypy-strict%200%20errors-blue?style=for-the-badge)](https://mypy-lang.org)
-[![ruff](https://img.shields.io/badge/ruff-0%20errors-orange?style=for-the-badge)](https://docs.astral.sh/ruff/)
+[![MQTT](https://img.shields.io/badge/MQTT-Mosquitto_v2-660066?style=for-the-badge&logo=eclipsemosquitto&logoColor=white)](https://mosquitto.org)
+[![Tests](https://img.shields.io/badge/Tests-66%20Passed-brightgreen?style=for-the-badge&logo=pytest&logoColor=white)](tests/)
+[![mypy](https://img.shields.io/badge/mypy-strict_0_errors-blue?style=for-the-badge)](https://mypy-lang.org)
+[![ruff](https://img.shields.io/badge/ruff-0_errors-orange?style=for-the-badge)](https://docs.astral.sh/ruff/)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 <br/>
 
-**Physics-accurate simulation of a distributed embedded system controlling  
-10 motorised military range targets with real-time MQTT telemetry,  
-live RTSP video feeds, fault injection, and full observability.**
+> A complete simulation of **10 motorised military range targets** spread across a 10 km² field —
+> controlled from a real-time PyQt6 dashboard over MQTT, with physics-accurate motor ODEs,
+> LiFePO4 battery chemistry, solar harvesting, RF link budgets, and live RTSP video feeds.
 
 <br/>
 
-> *CEP Project — Embedded Systems Design, Semester 8*
+![WINTS Dashboard](https://raw.githubusercontent.com/hamzabasharat26/Wints-controlroom/main/docs/assets/dashboard_preview.png)
 
 </div>
 
@@ -27,241 +29,235 @@ live RTSP video feeds, fault injection, and full observability.**
 ## Table of Contents
 
 - [Overview](#overview)
-- [Live Demo](#live-demo)
 - [Architecture](#architecture)
+- [Features](#features)
 - [Physics Engine](#physics-engine)
-- [Dashboard Features](#dashboard-features)
 - [Fault Injection](#fault-injection)
-- [Quick Start](#quick-start)
+- [Quickstart](#quickstart)
 - [CLI Reference](#cli-reference)
 - [Project Structure](#project-structure)
 - [Configuration](#configuration)
 - [Testing](#testing)
-- [Documentation](#documentation)
+- [MQTT Contract](#mqtt-contract)
+- [Real Hardware Path](#real-hardware-path)
 - [Tech Stack](#tech-stack)
+- [Documentation](#documentation)
 
 ---
 
 ## Overview
 
-WINTS simulates a real military range control system where an operator in a control room can raise, lower, and stop 10 motorised target stands spread across a 10 km² field — each one running independent physics, battery management, solar charging, and RF link simulation.
+WINTS simulates a distributed embedded system where a central control room operator commands 10 motorised target masts on a firing range. Each target is an independent simulation node running:
 
-Every target is a fully independent asyncio process publishing live telemetry over MQTT. The control room dashboard is a PyQt6 application that renders 10 live target cards, an event log, real-time charts, and RTSP video feeds from each target's cameras.
+- A **DC permanent magnet motor** modelled with coupled electrical + mechanical ODEs
+- A **LiFePO4 battery pack** with full coulomb counting, temperature derating, and BMS protection
+- A **solar charging system** with diurnal irradiance and MPPT simulation
+- A **5 GHz RF link** with free-space path loss, log-normal shadowing, and packet error rates
 
-**This is not a mock.** The motor responds to back-EMF. The battery drains under load and recharges from solar. Distant targets have worse RSSI and drop telemetry packets. T-07 starts with an OVERCURRENT fault and ignores all commands until cleared.
+All 10 nodes communicate over **MQTT (QoS 1 with LWT)** to the dashboard. The dashboard streams live **RTSP video** from each target's front and rear cameras via MediaMTX. Commands flow with UUID trace IDs, are deduplicated, acknowledged, and timed out if unacknowledged.
 
----
-
-## Live Demo
-
-```
-python -m scripts.wints demo
-```
-
-What you see in 10 seconds:
-
-| Element | State |
-|---------|-------|
-| T-01 → T-06, T-08, T-10 | 🟢 ONLINE — responding to commands |
-| T-07 | 🟠 FAULT — OVERCURRENT, motor locked |
-| T-09 | 🔴 OFFLINE — LWT triggered, never connected |
-| Buttons | ▲ RAISE / ■ STOP / ▼ LOWER — always interactive |
-| Video feeds | Live RTSP front-camera per card (MediaMTX) |
-| Charts | Battery SOC, RSSI, Online count, Solar (W) |
-
-**RAISE ALL** → all online targets move UP → buttons show PENDING → acked within 2s → buttons restore. T-07 rejects the command. T-09 times out after 5s. No button ever stays stuck.
+**Designed as a Comprehensive Engineering Project (CEP) demonstrating:**
+- Distributed embedded systems design
+- Physics simulation (ODEs, battery electrochemistry, RF propagation)
+- Real-time GUI engineering with PyQt6
+- MQTT protocol design with resilience patterns
+- Fault injection and chaos testing
+- Static analysis (mypy strict + ruff) and 66-test coverage
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    CONTROL ROOM  (PyQt6)                        │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  10 × TargetCard  [240×400px each]                       │  │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ...          │  │
-│  │  │ T-01     │  │ T-07     │  │ T-09     │               │  │
-│  │  │ 🟢ONLINE │  │ 🟠FAULT  │  │ 🔴OFFLINE│               │  │
-│  │  │ UP 100%  │  │ DOWN 0%  │  │ UNKNOWN  │               │  │
-│  │  │ [VIDEO]  │  │ [VIDEO]  │  │ [VIDEO]  │               │  │
-│  │  │ ▲ ■ ▼   │  │ ▲ ■ ▼   │  │ ▲ ■ ▼   │               │  │
-│  │  └──────────┘  └──────────┘  └──────────┘               │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│  ┌─────────────────────┐   ┌─────────────────────────────────┐ │
-│  │  Event Log          │   │  Metrics Panel (pyqtgraph)      │ │
-│  │  [CMD] ALL→RAISE    │   │  Battery SOC  ████▓░░  87%      │ │
-│  │  [ACK] T-01 acked   │   │  RSSI (dBm)   ▄▄▄▄▄▃▂  -58     │ │
-│  │  [WARN] T-09 timeout│   │  Online (#)   ─────── 9/10     │ │
-│  │                     │   │  Solar (W)    ╱╲╱╲╱   1840     │ │
-│  └─────────────────────┘   └─────────────────────────────────┘ │
-└─────────────────────────────┬───────────────────────────────────┘
-                              │  MQTT QoS 1 / QoS 0  :1883
-              ┌───────────────┴────────────────┐
-              │    Eclipse Mosquitto v2         │
-              │    Retained status messages     │
-              │    LWT for offline detection    │
-              └───────────────┬────────────────┘
-                              │
-   ┌──────────────────────────┼──────────────────────────────┐
-   │              TARGET SIMULATOR  (asyncio × 10)            │
-   │                                                          │
-   │  T-01  T-02  T-03  T-04  T-05  T-06  T-07  T-08  T-10  │
-   │  ┌──────────────────────────────────────────────────┐   │
-   │  │  Per-target physics (independent event loop)     │   │
-   │  │  ├─ Motor ODE  (RK45, 1ms steps)                │   │
-   │  │  ├─ LiFePO4 Battery (coulomb counting)           │   │
-   │  │  ├─ Solar Panel (sinusoidal irradiance + MPPT)   │   │
-   │  │  ├─ RF Link (FSPL + log-normal shadowing)        │   │
-   │  │  └─ Fault Injector HTTP  :9301-9310              │   │
-   │  └──────────────────────────────────────────────────┘   │
-   │  T-09 → OFFLINE (never connects — LWT demonstrates)     │
-   └──────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│                    WINTS CONTROL ROOM (PyQt6)                      │
+│                                                                    │
+│   ┌──────────────────────────────────────────────────────────┐    │
+│   │  10 × TargetCard  │  EventLog  │  MetricsPanel  │ Charts │    │
+│   │  ┌────────────┐   │            │  Targets Online │       │    │
+│   │  │ StatusBadge│   │ [INFO]...  │  Battery SOC   │ ╱╲    │    │
+│   │  │ MastWidget │   │ [CMD]...   │  RSSI (dBm)    │╱  ╲   │    │
+│   │  │ BatteryBar │   │ [WARN]...  │  Solar (W)     │    ╲  │    │
+│   │  │ RSSIWidget │   │            │                │     ╲ │    │
+│   │  │ VideoFeed  │   └────────────┴────────────────┴──────┘│    │
+│   │  │ [▲][■][▼]  │                                          │    │
+│   │  └────────────┘                                          │    │
+│   └──────────────────────────────────────────────────────────┘    │
+│                        │ Qt Signals                                │
+│                  ┌─────▼──────┐    ┌───────────────────────┐      │
+│                  │SystemModel │    │  CommandTracker        │      │
+│                  │ Dict[      │    │  UUID → pending/ack    │      │
+│                  │  TargetData│    │  2 s timeout + 5 s     │      │
+│                  │ ]          │    │  broadcast safety net  │      │
+│                  └─────┬──────┘    └───────────────────────┘      │
+│                        │ thread-safe update                        │
+│                  ┌─────▼──────────┐                               │
+│                  │ MQTT Client    │──────── paho-mqtt ──────────►  │
+│                  │ subs: wints/#  │                               │
+│                  │ pubs: */cmd    │                               │
+│                  └────────────────┘                               │
+└────────────────────────────────────────────────────────────────────┘
+                          │
+                     MQTT :1883 (QoS 1, LWT, Retained)
+                          │
+              ┌───────────▼────────────┐
+              │  Eclipse Mosquitto v2  │
+              └───────────┬────────────┘
+                          │
+   ┌──────┬───────┬───────┼───────┬───────┬──────┐
+   │ T-01 │ T-02  │ T-03  │  ...  │ T-09  │ T-10 │
+   │      │       │       │       │OFFLINE│      │
+   │Motor │ Motor │ Motor │       │(LWT)  │Motor │
+   │Batt  │ Batt  │ Batt  │       │       │Batt  │
+   │Solar │ Solar │ Solar │       │       │Solar │
+   │ RF   │  RF   │  RF   │       │       │ RF   │
+   │HTTP  │ HTTP  │ HTTP  │       │       │HTTP  │
+   │:9301 │ :9302 │ :9303 │       │       │:9310 │
+   └──────┴───────┴───────┘       └───────┴──────┘
 
-              ┌──────────────────────────────────┐
-              │  MediaMTX RTSP Server  :8554      │
-              │  20 streams (10 targets × front+rear) │
-              │  video_server/samples/*.mp4 looped│
-              └──────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│           MediaMTX RTSP Server  —  rtsp://127.0.0.1:8554           │
+│     20 streams: /wints/T-{01..10}/{front|rear}  (looped MP4)       │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Data Flow
 
 ```
-Operator clicks ▲ RAISE on T-01
-  → CommandTracker.issue("T-01", trace_id, "raise")
-  → MQTT publish  wints/T-01/cmd  QoS 1
-  → Mosquitto broker
-  → TargetSimulator.on_message()
-  → Physics: motor ODE begins integration (RK45, 1ms steps)
-  → MQTT publish  wints/T-01/status  QoS 1 retained
-  → Dashboard receives  →  SystemModel.update()
-  → Qt signal  →  TargetCard.set_command_pending(False)
-  → Button restores to  ▲ RAISE
+Button Click  →  CommandTracker.issue(trace_id)
+             →  MQTT publish "wints/T-XX/cmd" QoS=1
+             →  Mosquitto broker
+             →  Target asyncio handler
+             →  Motor ODE begins integration
+             →  Status echoes trace_id back
+             →  Dashboard ACKs  →  PENDING clears
+             →  (or 2 s timeout fires  →  PENDING clears)
 ```
+
+---
+
+## Features
+
+### Control Room Dashboard
+- **10 Target Cards** — each showing live status badge, animated mast position, battery SOC bar, RSSI signal bars, inline RTSP video feed, motor current, solar power, fault chip, and Raise/Stop/Lower buttons
+- **Animated Status Badges** — smooth colour transitions: green (ONLINE) → amber (FAULT) → red (OFFLINE)
+- **Animated Mast Widget** — EMA-interpolated vertical rail showing antenna position 0–100%
+- **Broadcast Commands** — RAISE ALL / STOP ALL / LOWER ALL from toolbar
+- **Command Tracker** — UUID trace IDs, 2 s individual timeout, 5 s broadcast safety net; buttons never stick on PENDING
+- **Event Log** — colour-coded, filterable stream of commands, acks, faults, and connection events
+- **Live Charts** — 4 rolling time-series charts (Battery SOC, RSSI, Online count, Solar power) via pyqtgraph
+- **LWT-aware** — T-09 shows red OFFLINE the instant its broker connection drops
+- **Stale Detection** — grey STALE badge when telemetry hasn't arrived in 10 seconds
+- **Double-click Video** — opens full 900×420 dual-camera (front + rear) dialog per target
+
+### Target Simulator
+- 10 **independent asyncio tasks**, zero shared mutable state
+- Physics loop at **10 ms real-time steps** with 1 ms motor ODE sub-stepping
+- Telemetry publish every **2 seconds** (QoS 0, RF-modelled drops)
+- Status publish on **every state transition** (QoS 1, retained)
+- **Deduplication** on `trace_id` — 5-second LRU window, 200 entry max
+- **Fault injection HTTP API** per target on ports 9301–9310
+- **LWT** published by broker on ungraceful disconnect
+
+### Resilience & Observability
+- `structlog` structured logging to console + `logs/` JSONL files
+- Prometheus metrics exposed on `:9200` (dashboard) and `:9101–9110` (simulators)
+- Pre-flight `wints doctor` checks all prerequisites before launch
+- 66 pytest tests: unit, integration, chaos
 
 ---
 
 ## Physics Engine
 
-Each of the 10 targets runs four independent physics models in a single asyncio event loop at real-time 10ms ticks.
-
 ### DC Permanent Magnet Motor
 
-Coupled ODEs solved with `scipy RK45` at 1ms sub-steps:
+Coupled electrical + mechanical ODEs solved at 1 ms steps:
 
 ```
-Electrical:   V = L·(di/dt) + R·i + Kₑ·ω
-Mechanical:   J·(dω/dt) = Kₜ·i − B·ω − T_load·tanh(ω/0.1)
-Position:     dθ/dt = ω      →      position% = (θ / θ_max) × 100
+Electrical:   V = L·(di/dt) + R·i + Ke·ω     →  di/dt = (V - R·i - Ke·ω) / L
+Mechanical:   J·(dω/dt) = Kt·i - B·ω - Tload  →  dω/dt = (Kt·i - B·ω - Tload·tanh(ω/0.1)) / J
+Position:     dθ/dt = ω                         →  pct = (θ / (π/2)) × 100
 ```
 
-| Parameter | Value | Notes |
-|-----------|-------|-------|
-| Resistance R | 0.5 Ω | Armature |
-| Inductance L | 2 mH | Armature |
-| Torque constant Kₜ | 0.08 N·m/A | = Kₑ for PMDC |
-| Inertia J | 0.02 kg·m² | Rotor + geared load |
-| Overcurrent limit | 12 A | BTS7960 sense pin |
-| Travel range θ_max | π/2 rad | 90° DOWN→UP |
+| Parameter | Value | Unit |
+|-----------|-------|------|
+| Armature resistance R | 0.5 | Ω |
+| Armature inductance L | 2.0 | mH |
+| Torque/back-EMF constant | 0.08 | N·m/A |
+| Rotor + load inertia J | 0.02 | kg·m² |
+| Overcurrent threshold | 12.0 | A |
+| Stall detection | ω < 0.5 rad/s + I > 8A for 2s | — |
 
-The `tanh` friction term prevents ODE stiffness artifacts that a hard `sign(ω)` discontinuity would cause.
+### LiFePO4 Battery (4S 100Ah)
 
-### LiFePO4 Battery (4S 100 Ah)
+- Coulomb counting with 0.995 coulombic efficiency
+- 14-point OCV-SOC lookup (EVE LF100LA datasheet)
+- Temperature-dependent R_internal (doubles at −20°C)
+- BMS hard cutoff at SOC < 10%, overcharge > 3.7V/cell, over-temp > 60°C
 
-- **Coulomb counting** with 0.995 coulombic efficiency
-- **OCV-SOC curve** — 14-point interpolated lookup (EVE LF100LA datasheet)
-- **Temperature-dependent R_internal** — doubles at −20°C
-- **BMS cutoff** at 10% SOC → motor hard-disabled, status publishes `BMS_CUTOFF`
-
-### Solar Panel (200 W Monocrystalline)
+### Solar Panel (200W Monocrystalline)
 
 ```
-G(t) = G_peak × sin(π × (t − t_sunrise) / (t_sunset − t_sunrise)) + N(0, σ²)
-P_solar = η_panel × A_panel × G(t) × η_mppt   →   max 209 W
+G(t) = 1000 × max(0, sin(π × (t − 6h) / 12h)) + N(0, 50²)
+P = 0.22 × 1.0 m² × G(t) × 0.95 MPPT  →  peak ≈ 209 W
 ```
 
-Simulation time runs at **60× acceleration** — a full 12-hour solar day in 12 real minutes.
+Runs in **accelerated sim time** (default 120×: 1 real second = 2 sim minutes).
 
-### RF Link Budget (5 GHz, 802.11n)
+### RF Link Budget (5 GHz, Ubiquiti airMAX-style)
 
 ```
-RSSI = P_tx + G_tx + G_rx − FSPL(d, 5GHz) − L_shadow
+RSSI = Ptx(23dBm) + Gtx(16dBi) + Grx(23dBi) − FSPL − Lshadow − Lmisc
+FSPL = 20·log10(d) + 126.9 dB  (5 GHz, d in metres)
+PER:  0% above −65 dBm  →  30% at −80 dBm  →  100% at −95 dBm
 ```
 
-- Packet Error Rate derived from RSSI thresholds (0% above −65 dBm, 100% below −95 dBm)
-- **T-09** at 5 km has marginal RSSI (−73 dBm) — telemetry drops are visible in the event log
-
----
-
-## Dashboard Features
-
-| Feature | Detail |
-|---------|--------|
-| **10 Target Cards** | 240×400 px each, live-updating, animated status badges |
-| **Animated Mast Widget** | Custom-painted vertical rail, head position interpolated with EMA |
-| **Status Badge** | Smooth QPropertyAnimation colour transitions (green/amber/red) |
-| **RSSI Bars** | 5-bar signal strength widget, colour-coded by strength |
-| **Battery Bar** | Progress bar with colour threshold (green/amber/red at 50%/20%) |
-| **Fault Chip** | Shows `⚠ OVERCURRENT` / `⚠ BMS_CUTOFF` etc. inline on card |
-| **Inline Video** | 90px RTSP front-camera feed per card, staggered start (300ms apart) |
-| **Double-click** | Opens full 900×420 dual-camera (FRONT + REAR) dialog |
-| **Command Pending** | Buttons show PENDING during in-flight command, restore on ack or 2s timeout |
-| **Broadcast Safety** | RAISE ALL / STOP ALL / LOWER ALL — 5s safety timer clears any stuck card |
-| **Event Log** | Colour-coded CMD / ACK / WARN / INFO / ERROR entries with filter |
-| **Live Charts** | 4 vertically stacked pyqtgraph plots — Battery SOC, RSSI, Online, Solar |
-| **Stale Detection** | ⚠ STALE badge after 15s without update (F-09 mitigation) |
-| **LWT Offline** | T-09 immediately shows RED OFFLINE on dashboard start |
+| Target | Distance | RSSI (nominal) |
+|--------|----------|----------------|
+| T-01 | 500 m | −52.8 dBm |
+| T-05 | 3500 m | −69.9 dBm |
+| T-07 | 4200 m | −71.4 dBm |
+| T-09 | 5000 m | −72.9 dBm |
 
 ---
 
 ## Fault Injection
 
-Faults can be injected at runtime without restarting anything:
+Inject faults at runtime via CLI or HTTP API:
 
 ```bash
-# Inject overcurrent into T-03 (motor locks, badge goes orange)
+# Via CLI
 python -m scripts.wints inject T-03 overcurrent
-
-# Simulate broker disconnect on T-05
-python -m scripts.wints inject T-05 broker_disconnect
-
-# Spike packet loss on T-02 (telemetry gaps, event log warnings)
-python -m scripts.wints inject T-02 packet_loss_spike
-
-# Force BMS battery cutoff on T-04
-python -m scripts.wints inject T-04 battery_bms
-
-# Stuck limit switch on T-06
-python -m scripts.wints inject T-06 limit_stuck
-
-# Clear all faults and recover T-03
 python -m scripts.wints inject T-03 clear
+
+# Via HTTP directly
+curl -X POST http://localhost:9303/fault/inject \
+     -H "Content-Type: application/json" \
+     -d '{"fault": "overcurrent"}'
 ```
 
-| Fault | Component | Dashboard Response |
-|-------|-----------|-------------------|
-| `OVERCURRENT` | Motor H-bridge | Orange FAULT badge, `⚠ OVERCURRENT` chip, commands rejected |
-| `MOTOR_STALL` | Motor mechanics | Orange FAULT badge, `⚠ MOTOR_STALL` chip |
-| `BMS_CUTOFF` | Battery BMS | Orange FAULT badge, `⚠ BMS_CUTOFF` chip, motor stops |
-| `LIMIT_STUCK` | Limit switches | Orange FAULT badge, `⚠ LIMIT_STUCK` chip |
-| `broker_disconnect` | MQTT radio | Card goes STALE → then RED OFFLINE after LWT |
-| `packet_loss_spike` | RF link | Telemetry gaps, command timeout warnings in log |
+| Fault | Effect | Dashboard |
+|-------|--------|-----------|
+| `overcurrent` | Shuts H-bridge, motor stops | Orange FAULT badge + `⚠ OVERCURRENT` chip |
+| `limit_stuck` | Both limit switches active simultaneously | Orange FAULT badge + `⚠ LIMIT_STUCK` |
+| `battery_bms` | Forces SOC to 5% → BMS cutoff | Orange FAULT badge + `⚠ BMS_CUTOFF` |
+| `broker_disconnect` | Drops MQTT connection → LWT fires | Grey STALE → Red OFFLINE after ~10 s |
+| `packet_loss_spike` | Doubles RF shadowing σ for 1 sim-hour | Command timeouts in event log |
+| `clear` | Resets all injected faults | Green ONLINE badge restored |
+
+**T-07** starts in `OVERCURRENT` fault by default in demo mode. **T-09** starts OFFLINE.
 
 ---
 
-## Quick Start
+## Quickstart
 
 ### Prerequisites
 
-| Tool | Purpose | Install |
-|------|---------|---------|
-| Python 3.11+ | Runtime | [python.org](https://python.org) |
-| Mosquitto | MQTT broker | `winget install EclipseFoundation.Mosquitto` |
-| FFmpeg | Test pattern generation | `winget install Gyan.FFmpeg` |
-| MediaMTX | RTSP server | Auto-downloaded by `wints setup` |
+- Python 3.11+
+- Windows 10/11 (Linux also supported)
+- [Mosquitto MQTT broker](https://mosquitto.org/download/)
+- [FFmpeg](https://ffmpeg.org/) (optional — for RTSP video)
+- [MediaMTX](https://github.com/bluenviron/mediamtx/releases) (auto-downloaded by `wints setup`)
 
 ### Installation
 
@@ -272,30 +268,33 @@ cd Wints-controlroom
 
 # 2. Create virtual environment
 python -m venv .venv
-.venv\Scripts\activate
+.venv\Scripts\activate          # Windows
+# source .venv/bin/activate     # Linux/macOS
 
 # 3. Install Python dependencies
 pip install -r requirements.txt
 
-# 4. Download MediaMTX + generate test video patterns
+# 4. Install native dependencies (Windows)
+winget install EclipseFoundation.Mosquitto
+winget install Gyan.FFmpeg
+
+# 5. Download MediaMTX and generate video test patterns
 python -m scripts.wints setup
 
-# 5. Verify everything is ready
+# 6. Verify all prerequisites
 python -m scripts.wints doctor
-```
 
-### Run
-
-```powershell
-# Launch everything in one command
+# 7. Launch the full demo
 python -m scripts.wints demo
 ```
 
-This starts (in order):
-1. **Mosquitto** broker on `:1883`
-2. **MediaMTX** RTSP server on `:8554` (20 streams)
-3. **Target Simulator** — 10 targets (T-07 faulted, T-09 offline)
-4. **Dashboard** — PyQt6 control room GUI
+### What happens on `wints demo`
+
+1. Detects/starts Mosquitto broker on `:1883`
+2. Starts MediaMTX RTSP server on `:8554` (20 streams)
+3. Launches 10 target simulators (T-07 faulted, T-09 offline)
+4. Opens the PyQt6 control room dashboard
+5. Video feeds appear in each card within ~4 seconds
 
 ---
 
@@ -307,19 +306,20 @@ python -m scripts.wints <command>
 
 | Command | Description |
 |---------|-------------|
-| `doctor` | Health check — Python, packages, binaries, ports, config files |
-| `setup` | Create venv, install packages, download MediaMTX |
-| `broker` | Start Mosquitto broker (blocking) |
-| `sim` | Start all 10 targets |
+| `doctor` | Check Python, packages, binaries, ports, config files |
+| `setup` | Install packages + download MediaMTX binary |
+| `broker` | Start Mosquitto broker (blocks) |
+| `sim` | Start all 10 simulated targets |
 | `sim --fault T-07` | Start with T-07 in OVERCURRENT fault |
-| `sim --offline T-09` | Start with T-09 offline (LWT) |
-| `dashboard` | Launch PyQt6 dashboard only |
-| `demo` | **Launch everything** in correct order |
-| `inject T-03 overcurrent` | Inject fault into running target |
-| `inject T-03 clear` | Clear fault and recover target |
-| `test` | Run full pytest suite |
-| `lint` | Run ruff + mypy |
-| `video` | Start MediaMTX standalone |
+| `sim --offline T-09` | Start with T-09 offline |
+| `dashboard` | Launch PyQt6 control room only |
+| `demo` | Start everything in correct order (recommended) |
+| `video` | Start MediaMTX RTSP server only |
+| `inject T-03 overcurrent` | Inject overcurrent fault into T-03 |
+| `inject T-03 clear` | Clear all faults on T-03 |
+| `test` | Run full pytest suite (66 tests) |
+| `lint` | Run ruff + mypy --strict |
+| `replay <file>` | Replay a recorded session JSONL file |
 
 ---
 
@@ -328,68 +328,68 @@ python -m scripts.wints <command>
 ```
 Wints-controlroom/
 │
-├── control_room/               # PyQt6 Dashboard
-│   ├── main.py                 # QApplication entry point
+├── config/                     # All configuration files
+│   ├── wints.yaml              # Simulation parameters (motor, battery, RF, etc.)
+│   ├── mosquitto.conf          # MQTT broker configuration
+│   └── mediamtx.yml            # RTSP server stream paths
+│
+├── control_room/               # PyQt6 dashboard application
+│   ├── main.py                 # Entry point — creates QApplication
 │   ├── models/
-│   │   ├── system_model.py     # Single source of truth (10 TargetData)
-│   │   └── target_state.py     # Pydantic enums & state types
+│   │   ├── system_model.py     # Single source of truth for all target state
+│   │   └── target_state.py     # Pydantic data classes
 │   ├── mqtt/
-│   │   └── client.py           # paho-mqtt wrapper, thread→Qt bridge
+│   │   └── client.py           # Thread-safe MQTT client wrapper
 │   ├── services/
-│   │   └── command_tracker.py  # UUID trace_id lifecycle (issue→ack→timeout)
+│   │   └── command_tracker.py  # UUID trace_id → pending/ack/timeout
 │   └── ui/
-│       ├── main_window.py      # QMainWindow — card grid + docks + toolbar
-│       ├── target_card.py      # TargetCard QFrame (240×400px)
-│       ├── video_widget.py     # RTSPCapture QThread + VideoWidget
-│       ├── event_log.py        # Colour-coded scrolling event log
-│       ├── live_charts.py      # 4-chart pyqtgraph panel
-│       └── metrics_panel.py    # Aggregate metrics display
+│       ├── main_window.py      # Main window, toolbar, dock layout
+│       ├── target_card.py      # Per-target card with all sub-widgets
+│       ├── video_widget.py     # RTSP capture QThread + display widget
+│       ├── live_charts.py      # pyqtgraph rolling time-series charts
+│       ├── metrics_panel.py    # KPI numbers panel
+│       └── event_log.py        # Colour-coded event log widget
 │
-├── target_simulator/           # Physics Simulator (10 asyncio tasks)
-│   ├── main.py                 # asyncio.gather() — runs all 10 targets
-│   ├── target.py               # TargetSimulator state machine
-│   ├── models.py               # Pydantic payload schemas
+├── target_simulator/           # 10-target physics simulation
+│   ├── main.py                 # asyncio entry — spawns 10 TargetSimulator tasks
+│   ├── target.py               # State machine + MQTT + fault injector HTTP API
+│   ├── models.py               # Pydantic payload schemas (shared with dashboard)
 │   └── physics/
-│       ├── motor.py            # DC motor coupled ODEs (RK45)
-│       ├── battery.py          # LiFePO4 coulomb counting + BMS
-│       ├── solar.py            # Sinusoidal irradiance + MPPT
-│       └── rf_link.py          # FSPL + log-normal shadowing + PER
+│       ├── motor.py            # DC motor ODE solver (scipy RK45)
+│       ├── battery.py          # LiFePO4 electrochemistry + BMS
+│       ├── solar.py            # Diurnal irradiance + MPPT
+│       └── rf_link.py          # FSPL + shadowing + PER model
 │
-├── config/
-│   ├── wints.yaml              # All simulation parameters (motor, battery, RF)
-│   ├── mosquitto.conf          # Broker config (persistence, logging)
-│   └── mediamtx.yml            # 20 RTSP stream paths (looped MP4)
-│
-├── tests/
-│   ├── unit/                   # 57 unit tests (motor, battery, solar, RF, models)
-│   ├── chaos/                  # 9 fault injection + recovery tests
-│   └── integration/            # MQTT round-trip tests
+├── video_server/               # RTSP test pattern generation
+│   ├── generate_test_patterns.py  # Creates 20 annotated MP4s via OpenCV
+│   ├── start_mediamtx.py          # Launcher wrapper
+│   └── samples/                   # Generated MP4 files (gitignored)
 │
 ├── firmware/
-│   └── main_reference.c        # STM32 C reference (swap in for real hardware)
+│   └── main_reference.c        # Reference STM32 C implementation
+│
+├── tests/
+│   ├── unit/                   # Motor, battery, solar, RF, model tests
+│   ├── integration/            # MQTT round-trip tests
+│   └── chaos/                  # Fault injection + recovery sequences
 │
 ├── docs/
-│   ├── 01_design.md            # Full system design, state machines, timing budget
-│   ├── 02_premortem.md         # 24 failure modes + mitigations
-│   ├── 03_chosen_plan.md       # Architecture decisions
-│   ├── 04_real_hardware.md     # How to wire up STM32 + real cameras
+│   ├── 01_design.md            # Full system design with state machines
+│   ├── 02_premortem.md         # 24 failure modes + risk matrix
+│   ├── 03_chosen_plan.md       # Implementation plan
+│   ├── 04_real_hardware.md     # STM32 hardware swap guide
 │   ├── 05_demo_script.md       # Minute-by-minute supervisor demo
 │   └── 06_adr.md               # Architecture Decision Records
-│
-├── video_server/
-│   ├── generate_test_patterns.py  # FFmpeg — annotated MP4 per target/camera
-│   └── samples/                   # target-{01..10}-{front,rear}.mp4 (generated)
 │
 ├── scripts/
 │   └── wints.py                # Click CLI orchestrator
 │
 ├── tools/
-│   └── mediamtx/               # MediaMTX binary (auto-downloaded)
+│   └── mediamtx/               # MediaMTX binary (gitignored, downloaded by setup)
 │
-├── pyproject.toml              # ruff + mypy + pytest config
-├── requirements.txt            # Runtime dependencies (pinned)
-├── requirements-dev.txt        # Dev dependencies (pytest, mypy, ruff)
-└── README.md
+├── pyproject.toml              # Build config, ruff, mypy, pytest settings
+├── requirements.txt            # Runtime dependencies
+└── requirements-dev.txt        # Dev dependencies (pytest, mypy, ruff)
 ```
 
 ---
@@ -400,110 +400,145 @@ All simulation parameters live in `config/wints.yaml` — no magic numbers in co
 
 ```yaml
 motor:
-  resistance_ohm: 0.5          # Change to match real motor datasheet
-  overcurrent_threshold_a: 12.0
+  resistance_ohm: 0.5           # Armature resistance
+  torque_constant: 0.08         # Kt = Ke for PMDC motor
+  overcurrent_threshold_a: 12.0 # BTS7960 sense pin limit
+  stall_duration_ms: 2000       # Sustained stall → fault
 
 battery:
-  capacity_ah: 100
-  bms_cutoff_soc_pct: 10       # % SOC before hard cutoff
+  capacity_ah: 100              # 4S LiFePO4 pack
+  bms_cutoff_soc_pct: 10        # Hard cutoff threshold
+  quiescent_load_w: 7.0         # MCU + radio + cameras standby
 
 simulation:
-  time_acceleration_factor: 120  # 1 real second = 120 sim seconds
+  time_acceleration_factor: 120 # 1 real second = 2 sim minutes
 
 targets:
-  T-07: {initial_soc: 22, start_faulted: true}   # Demo: critically low SOC + fault
-  T-09: {start_offline: true}                      # Demo: LWT offline detection
+  T-07: {distance_m: 4200, initial_soc: 22}  # critically low SOC
+  T-09: {distance_m: 5000, start_offline: true}
 ```
 
 ---
 
 ## Testing
 
-```powershell
+```bash
 # Run all 66 tests
 python -m scripts.wints test
+# or directly:
+pytest tests/ -v
 
-# Run with coverage
-.venv\Scripts\pytest tests/ -v --tb=short
+# Run only unit tests (no broker needed)
+pytest tests/unit/ -v
 
-# Static analysis
-.venv\Scripts\mypy --strict control_room/ target_simulator/
-.venv\Scripts\ruff check .
+# Run chaos tests (fault injection sequences)
+pytest tests/chaos/ -v
+
+# Type checking
+mypy --strict control_room/ target_simulator/
+
+# Linting
+ruff check .
 ```
 
-**Test Results:**
+**Test breakdown:**
 
-```
-66 passed in 9.17s  ✓
-mypy: Success — no issues found in 25 source files  ✓
-ruff: All checks passed  ✓
-```
-
-| Suite | Count | What it covers |
-|-------|-------|----------------|
-| `unit/test_motor` | 16 | ODE integration, overcurrent, stall, limit switches |
-| `unit/test_battery` | 12 | Coulomb counting, OCV curve, BMS cutoff, temperature |
-| `unit/test_solar` | 10 | Irradiance, power formula, charge current limits |
-| `unit/test_rf_link` | 9 | FSPL, RSSI, PER, QoS-1 never-dropped guarantee |
-| `unit/test_models` | 10 | Pydantic payload validation, LWT schema |
-| `chaos/test_fault_injection` | 9 | Inject → verify → clear → verify recovery |
+| Suite | Count | Coverage |
+|-------|-------|----------|
+| Motor physics (ODE, limits, faults) | 16 | Coupled ODEs, stall, overcurrent |
+| Battery (chemistry, BMS, temperature) | 12 | Coulomb counting, OCV, cutoff |
+| Solar (irradiance, MPPT, night) | 10 | Diurnal model, charge current |
+| RF link (FSPL, RSSI, PER) | 9 | Path loss, packet drop |
+| Model serialisation (Pydantic) | 11 | All payload schemas |
+| Chaos / fault injection | 8 | Inject + recover sequences |
+| **Total** | **66** | **66 passed, 0 failed** |
 
 ---
 
-## Tech Stack
+## MQTT Contract
 
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| **GUI** | PyQt6 6.7.0 | Native widgets, QThread for RTSP, smooth animations |
-| **Charts** | pyqtgraph 0.13.7 | GPU-accelerated real-time plots |
-| **MQTT** | paho-mqtt 2.1.0 | Industry standard, QoS 1/0, LWT support |
-| **Broker** | Eclipse Mosquitto v2 | Production-grade, retained messages, persistence |
-| **Physics** | scipy 1.13.0 + numpy 1.26.4 | RK45 ODE solver, numerical stability |
-| **Validation** | pydantic 2.7.0 | Strict schema validation, JSON serialisation |
-| **Video** | OpenCV 4.9.0 + MediaMTX | RTSP decode in QThread, 15fps per card |
-| **Logging** | structlog 24.1.0 | Structured JSON logs, coloured console |
-| **CLI** | click 8.1.7 + rich 13.7.1 | Doctor checks, coloured output, process management |
-| **Testing** | pytest 8.2.0 + hypothesis 6.100.0 | Unit + property-based + chaos |
-| **Typing** | mypy 1.10.0 strict | Zero type errors across 25 files |
-| **Linting** | ruff 0.4.4 | Zero warnings |
+| Topic | Direction | QoS | Retain | Rate |
+|-------|-----------|-----|--------|------|
+| `wints/T-{XX}/cmd` | Dashboard → Target | 1 | No | On demand |
+| `wints/broadcast/cmd` | Dashboard → All | 1 | No | On demand |
+| `wints/T-{XX}/status` | Target → Dashboard | 1 | **Yes** | On change |
+| `wints/T-{XX}/telemetry` | Target → Dashboard | 0 | No | Every 2 s |
+
+**Command payload:**
+```json
+{"trace_id": "f6d06093-...", "cmd": "raise", "ts": 1718370615123}
+```
+
+**Status payload:**
+```json
+{
+  "target_id": "T-07", "online": true, "position": "DOWN",
+  "position_pct": 0.0, "battery_soc": 22.1, "battery_voltage": 13.01,
+  "fault": true, "fault_code": "OVERCURRENT",
+  "trace_id": "f6d06093-....T-07", "ts": 1718370615500
+}
+```
 
 ---
 
 ## Real Hardware Path
 
-The simulator was designed to swap out cleanly for real hardware. See [`docs/04_real_hardware.md`](docs/04_real_hardware.md) for the full guide.
+The simulator is designed to be replaced by real STM32 hardware with minimal changes:
 
-**Short version:**
-1. Flash `firmware/main_reference.c` onto an STM32F4
-2. Connect H-bridge motor driver (BTS7960), LiFePO4 BMS, solar MPPT, Ubiquiti radio
-3. Point `config/wints.yaml` `broker.host` at your real broker IP
-4. The dashboard connects automatically — no code changes needed
+1. Flash `firmware/main_reference.c` onto an STM32F4 target board
+2. Connect the real MQTT broker (same Mosquitto config)
+3. Replace `video_server/` with real IP camera RTSP URLs in `config/mediamtx.yml`
+4. The dashboard is **hardware-agnostic** — it only speaks MQTT
+
+See [`docs/04_real_hardware.md`](docs/04_real_hardware.md) for the full hardware integration guide.
+
+---
+
+## Tech Stack
+
+| Component | Technology | Version |
+|-----------|-----------|---------|
+| Dashboard GUI | PyQt6 | 6.7.0 |
+| MQTT client | paho-mqtt | 2.1.0 |
+| Data validation | pydantic | 2.7.0 |
+| Physics ODE solver | scipy (RK45) | 1.13.0 |
+| Numerical computing | numpy | 1.26.4 |
+| Real-time charts | pyqtgraph | 0.13.7 |
+| RTSP video | opencv-python | 4.9.0 |
+| RTSP server | MediaMTX | 1.9.0 |
+| MQTT broker | Eclipse Mosquitto | 2.x |
+| Structured logging | structlog | 24.1.0 |
+| Metrics exposition | prometheus-client | 0.20.0 |
+| CLI | click + rich | 8.1.7 / 13.7.1 |
+| Type checking | mypy (strict) | 1.10.0 |
+| Linting | ruff | 0.4.4 |
+| Testing | pytest | 8.2.0 |
 
 ---
 
 ## Documentation
 
-| Document | Contents |
-|----------|----------|
-| [`docs/01_design.md`](docs/01_design.md) | Full system decomposition, 5 state machine diagrams, timing budget, MQTT contract, Prometheus metrics schema |
-| [`docs/02_premortem.md`](docs/02_premortem.md) | 24 identified failure modes, risk matrix (impact × likelihood), top 8 mitigations implemented |
-| [`docs/03_chosen_plan.md`](docs/03_chosen_plan.md) | Architecture decisions and constraints |
-| [`docs/04_real_hardware.md`](docs/04_real_hardware.md) | STM32 wiring guide, component BOM, calibration procedure |
-| [`docs/05_demo_script.md`](docs/05_demo_script.md) | Minute-by-minute demo for supervisor presentation |
-| [`docs/06_adr.md`](docs/06_adr.md) | Architecture Decision Records (MQTT vs HTTP, PyQt6 vs Electron, etc.) |
+| Document | Description |
+|----------|-------------|
+| [`docs/01_design.md`](docs/01_design.md) | Full system decomposition, state machines, timing budget, physics equations |
+| [`docs/02_premortem.md`](docs/02_premortem.md) | 24 identified failure modes, risk matrix, top 8 mitigations |
+| [`docs/03_chosen_plan.md`](docs/03_chosen_plan.md) | Implementation plan with architectural constraints |
+| [`docs/04_real_hardware.md`](docs/04_real_hardware.md) | How to replace the simulator with STM32 + real cameras |
+| [`docs/05_demo_script.md`](docs/05_demo_script.md) | Minute-by-minute supervisor demo script |
+| [`docs/06_adr.md`](docs/06_adr.md) | Architecture Decision Records for all major choices |
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT © 2026 — Hamza Basharat
 
 ---
 
 <div align="center">
 
-**Built for the Embedded Systems Design CEP — Semester 8**
+**Built as a Comprehensive Engineering Project (CEP) for SEM 8 — Embedded Systems Design**
 
-*Physics engine · MQTT telemetry · Real-time dashboard · Fault injection · 66 tests passing*
+*Physics engine · MQTT protocol · Real-time GUI · Fault injection · 66 tests · mypy strict · ruff clean*
 
 </div>
