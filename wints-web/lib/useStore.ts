@@ -1,6 +1,6 @@
 "use client";
 /**
- * useStore — React hook that subscribes to the WINTS store singleton
+ * React hook that subscribes to the WINTS store singleton
  * and triggers re-renders whenever state changes.
  */
 import { useSyncExternalStore } from "react";
@@ -20,4 +20,3 @@ export function useStore() {
 }
 
 export type { ConnectionState, EventEntry, TargetState };
-

@@ -1,0 +1,13 @@
+{
+  "name": "wints-controlroom",
+  "private": true,
+  "workspaces": [
+    "wints-web"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace wints-web",
+    "dev": "npm run dev --workspace wints-web",
+    "start": "npm run start --workspace wints-web",
+    "lint": "npm run lint --workspace wints-web"
+  }
+}

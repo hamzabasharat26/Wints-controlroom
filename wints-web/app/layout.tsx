@@ -8,20 +8,20 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-    title: "⚡ WINTS Control Room — Space-Age Telemetry Dashboard",
+    title: "WINTS Control Room | Space-Age Telemetry Dashboard",
     description:
-        "Wireless Integrated Network Target System — real-time military grade telemetry & remote control dashboard for 10 motorised range targets.",
+        "Wireless Integrated Network Target System real-time telemetry and remote control dashboard for 10 motorised range targets.",
     keywords: ["WINTS", "MQTT", "control room", "embedded systems", "real-time", "military range"],
     authors: [{ name: "Hamza Basharat" }],
     openGraph: {
-        title: "WINTS Control Room — Space-Age Telemetry",
+        title: "WINTS Control Room | Space-Age Telemetry",
         description: "Physics-accurate distributed embedded range simulation",
         type: "website",
         siteName: "WINTS Control Room",
     },
     twitter: {
         card: "summary_large_image",
-        title: "WINTS Control Room — Space-Age Telemetry",
+        title: "WINTS Control Room | Space-Age Telemetry",
         description: "Physics-accurate distributed embedded range simulation",
     },
 };
@@ -32,9 +32,9 @@ export const viewport = {
 
 export default function RootLayout({
     children,
-}: {
+}: Readonly<{
     children: React.ReactNode;
-}) {
+}>) {
     return (
         <html lang="en" className="dark">
             <body className={`${outfit.className} bg-base text-text antialiased`}>{children}</body>

@@ -1,7 +1,7 @@
 {
     "name": "wints-web",
     "version": "1.0.0",
-    "description": "WINTS Control Room — Web Dashboard",
+    "description": "WINTS Control Room - Web Dashboard",
     "private": true,
     "scripts": {
         "dev": "next dev",

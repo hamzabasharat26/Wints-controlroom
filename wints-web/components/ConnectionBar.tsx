@@ -22,23 +22,23 @@ export default function ConnectionBar({ state, onlineCount, faultCount }: Props)
 
     return (
         <div className={`flex flex-col gap-2 px-4 py-3 border-b border-surface0/70 ${cfg.bg} sm:flex-row sm:items-center sm:justify-between`}>
-            {/* Left — connection status */}
+            {/* Left connection status */}
             <div className={`flex items-center gap-2 text-sm font-medium ${cfg.color}`}>
                 <Icon size={15} className={spinning ? "animate-spin" : ""} />
                 <span className="mono">{cfg.label}</span>
             </div>
 
-            {/* Centre — system title */}
+            {/* Center system title */}
             <div className="hidden sm:flex flex-col items-center text-center">
                 <span className="mono text-blue font-bold tracking-wider text-sm">
-                    ⚡ WINTS CONTROL ROOM
+                    WINTS CONTROL ROOM
                 </span>
                 <span className="text-[10px] text-overlay mono mt-0.5">
-                    Live MQTT telemetry · secure WebSocket ready
+                    Live MQTT telemetry | secure WebSocket ready
                 </span>
             </div>
 
-            {/* Right — live counters */}
+            {/* Right live counters */}
             <div className="flex flex-wrap items-center gap-2 text-[10px] mono">
                 <span className="px-2.5 py-1 rounded-full border border-green/25 bg-green/10 text-green font-bold">
                     {onlineCount}/10 ONLINE

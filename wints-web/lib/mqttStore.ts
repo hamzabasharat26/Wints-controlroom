@@ -1,15 +1,9 @@
 /**
- * mqttStore.ts
- * Central MQTT connection + state store for the WINTS web dashboard.
+ * Central MQTT connection and state store for the WINTS web dashboard.
  * Uses browser-native mqtt.js over secure WebSocket (wss://).
- *
- * Target state is updated on every incoming wints/T-XX/status and
- * wints/T-XX/telemetry message, then notifies all registered listeners.
  */
 
 import mqtt, { MqttClient } from "mqtt";
-
-// ── Types ───────────────────────────────────────────────────────────────────
 
 export type PositionLabel = "UP" | "DOWN" | "MOVING" | "UNKNOWN";
 export type FaultCode =
@@ -45,8 +39,6 @@ export interface EventEntry {
 
 export type ConnectionState = "disconnected" | "connecting" | "connected" | "error";
 
-// ── Initial state ───────────────────────────────────────────────────────────
-
 const TARGET_IDS = Array.from({ length: 10 }, (_, i) => `T-${String(i + 1).padStart(2, "0")}`);
 
 function makeDefaultTarget(id: string): TargetState {
@@ -68,8 +60,6 @@ function makeDefaultTarget(id: string): TargetState {
     };
 }
 
-// ── Store singleton ─────────────────────────────────────────────────────────
-
 type Listener = () => void;
 
 class WINTSStore {
@@ -87,8 +77,6 @@ class WINTSStore {
         }
     }
 
-    // ── Subscription ──────────────────────────────────────────────────────────
-
     subscribe(fn: Listener) {
         this.listeners.add(fn);
         return () => this.listeners.delete(fn);
@@ -98,8 +86,6 @@ class WINTSStore {
         this.listeners.forEach((fn) => fn());
     }
 
-    // ── Events ────────────────────────────────────────────────────────────────
-
     private addEvent(type: EventEntry["type"], message: string) {
         const entry: EventEntry = {
             id: ++this.eventCounter,
@@ -107,11 +93,9 @@ class WINTSStore {
             type,
             message,
         };
-        // Keep last 200 events
+
         this.events = [entry, ...this.events].slice(0, 200);
     }
-
-    // ── MQTT connection ───────────────────────────────────────────────────────
 
     private normalizeHost(host: string): string {
         const raw = host.trim();
@@ -135,7 +119,7 @@ class WINTSStore {
         if (this.client) return;
 
         const normalizedHost = this.normalizeHost(host);
-        const normalizedPort = Number.isFinite(port) ? Math.trunc(port) : NaN;
+        const normalizedPort = Number.isFinite(port) ? Math.trunc(port) : Number.NaN;
 
         if (
             this.isPlaceholder(normalizedHost) ||
@@ -168,11 +152,9 @@ class WINTSStore {
         this.client.on("connect", () => {
             this.connection = "connected";
             this.addEvent("info", "Connected to MQTT broker");
-            // Subscribe to all WINTS topics
-            this.client!.subscribe("wints/+/status", { qos: 1 });
-            this.client!.subscribe("wints/+/telemetry", { qos: 0 });
+            this.client?.subscribe("wints/+/status", { qos: 1 });
+            this.client?.subscribe("wints/+/telemetry", { qos: 0 });
             this.notify();
-            // Start stale detection
             this.startStaleDetection();
         });
 
@@ -207,11 +189,9 @@ class WINTSStore {
         this.notify();
     }
 
-    // ── Message handler ───────────────────────────────────────────────────────
-
     private handleMessage(topic: string, raw: string) {
         try {
-            const parts = topic.split("/"); // ["wints", "T-01", "status"]
+            const parts = topic.split("/");
             if (parts.length !== 3 || parts[0] !== "wints") return;
 
             const targetId = parts[1];
@@ -239,7 +219,7 @@ class WINTSStore {
                 };
 
                 if (data.fault && data.fault_code) {
-                    this.addEvent("warn", `${targetId}: FAULT — ${data.fault_code}`);
+                    this.addEvent("warn", `${targetId}: FAULT - ${data.fault_code}`);
                 }
                 if (!data.online) {
                     this.addEvent("error", `${targetId}: went OFFLINE`);
@@ -263,21 +243,15 @@ class WINTSStore {
 
             this.notify();
         } catch {
-            // Malformed JSON — silently discard
+            // Malformed JSON: silently discard.
         }
     }
-
-    // ── Command publish ───────────────────────────────────────────────────────
 
     publishCommand(targetId: string, cmd: "raise" | "lower" | "stop") {
         if (!this.client || this.connection !== "connected") return;
 
         const traceId = crypto.randomUUID();
-        const topic =
-            targetId === "broadcast"
-                ? "wints/broadcast/cmd"
-                : `wints/${targetId}/cmd`;
-
+        const topic = targetId === "broadcast" ? "wints/broadcast/cmd" : `wints/${targetId}/cmd`;
         const payload = JSON.stringify({
             trace_id: traceId,
             cmd,
@@ -287,13 +261,11 @@ class WINTSStore {
         this.client.publish(topic, payload, { qos: 1 });
 
         const label = targetId === "broadcast" ? "ALL" : targetId;
-        this.addEvent("cmd", `[CMD] ${label} → ${cmd.toUpperCase()} [${traceId.slice(0, 8)}]`);
+        this.addEvent("cmd", `[CMD] ${label} -> ${cmd.toUpperCase()} [${traceId.slice(0, 8)}]`);
         this.notify();
 
         return traceId;
     }
-
-    // ── Stale detection ───────────────────────────────────────────────────────
 
     private startStaleDetection() {
         if (this.staleTimer) clearInterval(this.staleTimer);
@@ -315,8 +287,6 @@ class WINTSStore {
         }, 2000);
     }
 
-    // ── Derived metrics ───────────────────────────────────────────────────────
-
     getOnlineCount(): number {
         return Object.values(this.targets).filter((t) => t.online && !t.isStale).length;
     }
@@ -328,13 +298,12 @@ class WINTSStore {
     getAvgSoc(): number {
         const online = Object.values(this.targets).filter((t) => t.online);
         if (!online.length) return 0;
-        return online.reduce((s, t) => s + t.batterySoc, 0) / online.length;
+        return online.reduce((sum, t) => sum + t.batterySoc, 0) / online.length;
     }
 
     getTotalSolar(): number {
-        return Object.values(this.targets).reduce((s, t) => s + (t.online ? t.solarW : 0), 0);
+        return Object.values(this.targets).reduce((sum, t) => sum + (t.online ? t.solarW : 0), 0);
     }
 }
 
-// Export singleton
 export const store = new WINTSStore();

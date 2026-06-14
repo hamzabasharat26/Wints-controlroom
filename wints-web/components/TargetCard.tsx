@@ -1,7 +1,7 @@
 "use client";
 import { TargetState, store } from "@/lib/mqttStore";
 import clsx from "clsx";
-import { AlertTriangle, ChevronDown, ChevronUp, Square, Sun, Zap, Battery } from "lucide-react";
+import { AlertTriangle, Battery, ChevronDown, ChevronUp, Square, Sun, Zap } from "lucide-react";
 import { useCallback, useState } from "react";
 
 interface Props {
@@ -14,12 +14,14 @@ function StatusBadge({ target }: { target: TargetState }) {
     if (!target.online || target.isStale) {
         const isStale = target.isStale && target.online;
         return (
-            <span className={clsx(
-                "px-2.5 py-0.5 rounded-full text-[9px] font-black mono tracking-wider",
-                isStale
-                    ? "bg-overlay/10 text-overlay border border-overlay/25"
-                    : "bg-red/10 text-red border border-red/25"
-            )}>
+            <span
+                className={clsx(
+                    "px-2.5 py-0.5 rounded-full text-[9px] font-black mono tracking-wider",
+                    isStale
+                        ? "bg-overlay/10 text-overlay border border-overlay/25"
+                        : "bg-red/10 text-red border border-red/25"
+                )}
+            >
                 {isStale ? "STALE" : "OFFLINE"}
             </span>
         );
@@ -38,7 +40,7 @@ function StatusBadge({ target }: { target: TargetState }) {
     );
 }
 
-function MastIndicator({ pct, position }: { pct: number; position: string }) {
+function MastIndicator({ pct }: { pct: number; position: string }) {
     const headColor =
         pct > 90 ? "var(--green)" : pct > 10 ? "var(--blue)" : "var(--overlay)";
     const bottomPct = Math.max(0, Math.min(100, pct));
@@ -69,7 +71,7 @@ function MastIndicator({ pct, position }: { pct: number; position: string }) {
 function BatteryBar({ soc, charging }: { soc: number; charging: boolean }) {
     const textColor = soc > 50 ? "text-green" : soc > 20 ? "text-yellow" : "text-red font-bold animate-pulse";
     const barBgColor = soc > 50 ? "bg-green" : soc > 20 ? "bg-yellow" : "bg-red";
-    
+
     return (
         <div className="w-full bg-surface0/20 border border-surface0/30 rounded-xl p-2 flex flex-col gap-1.5">
             <div className="flex justify-between items-center text-[9px] text-overlay mono font-bold">
@@ -78,7 +80,7 @@ function BatteryBar({ soc, charging }: { soc: number; charging: boolean }) {
                     BATTERY
                 </span>
                 <span className={textColor}>
-                    {charging && <span className="text-green animate-pulse mr-1">⚡</span>}
+                    {charging && <span className="text-green animate-pulse mr-1">+</span>}
                     {soc.toFixed(1)}%
                 </span>
             </div>
@@ -121,9 +123,11 @@ function RssiDots({ rssi }: { rssi: number }) {
 
 function PositionDisplay({ pct, position }: { pct: number; position: string }) {
     const color =
-        position === "UP" ? "text-green font-black drop-shadow-[0_0_6px_rgba(166,227,161,0.25)]" :
-            position === "DOWN" ? "text-overlay" :
-                "text-blue animate-pulse";
+        position === "UP"
+            ? "text-green font-black drop-shadow-[0_0_6px_rgba(166,227,161,0.25)]"
+            : position === "DOWN"
+              ? "text-overlay"
+              : "text-blue animate-pulse";
     return (
         <div className="flex flex-col select-none">
             <span className="text-[8px] text-overlay font-bold mono uppercase tracking-wider">Mast Pos</span>
@@ -140,7 +144,7 @@ export default function TargetCard({ target }: Props) {
         if (pending) return;
         setPending(cmd);
         store.publishCommand(target.targetId, cmd);
-        // Clear after 2 s (safety net — real ack comes via MQTT status)
+        // Clear after 2 s; the MQTT status update is the real acknowledgement.
         setTimeout(() => setPending(null), 2000);
     }, [pending, target.targetId]);
 
@@ -150,39 +154,39 @@ export default function TargetCard({ target }: Props) {
     const canStop = target.online && !target.isStale;
 
     return (
-        <div className={clsx(
-            "glass-card rounded-2xl p-4 flex flex-col gap-3.5 transition-all duration-300 animate-fade-in",
-            !target.online
-                ? "border-red/25 hover:border-red/40 glow-offline grayscale opacity-80"
-                : target.isStale
-                ? "border-overlay/30 opacity-80"
-                : target.fault
-                ? "border-orange/40 hover:border-orange/60 glow-fault"
-                : "border-surface0 hover:border-green/50 hover:shadow-[0_0_15px_rgba(166,227,161,0.15)] glow-online"
-        )}>
-            {/* Header */}
+        <div
+            className={clsx(
+                "glass-card rounded-2xl p-4 flex flex-col gap-3.5 transition-all duration-300 animate-fade-in",
+                !target.online
+                    ? "border-red/25 hover:border-red/40 glow-offline grayscale opacity-80"
+                    : target.isStale
+                      ? "border-overlay/30 opacity-80"
+                      : target.fault
+                        ? "border-orange/40 hover:border-orange/60 glow-fault"
+                        : "border-surface0 hover:border-green/50 hover:shadow-[0_0_15px_rgba(166,227,161,0.15)] glow-online"
+            )}
+        >
             <div className="flex items-center justify-between border-b border-surface0/40 pb-2">
                 <div className="flex items-center gap-2">
-                    <span className={clsx(
-                        "w-2 h-2 rounded-full",
-                        !target.online || target.isStale ? "bg-red animate-pulse" :
-                        target.fault ? "bg-orange animate-ping" : "bg-green animate-pulse"
-                    )} />
+                    <span
+                        className={clsx(
+                            "w-2 h-2 rounded-full",
+                            !target.online || target.isStale ? "bg-red animate-pulse" :
+                            target.fault ? "bg-orange animate-ping" : "bg-green animate-pulse"
+                        )}
+                    />
                     <span className="mono font-black text-sm text-blue tracking-wider">{target.targetId}</span>
                 </div>
                 <StatusBadge target={target} />
             </div>
 
-            {/* Position row */}
             <div className="flex items-center gap-4 py-1">
                 <MastIndicator pct={target.positionPct} position={target.position} />
                 <PositionDisplay pct={target.positionPct} position={target.position} />
             </div>
 
-            {/* Battery */}
             <BatteryBar soc={target.batterySoc} charging={target.solarW > 0} />
 
-            {/* Telemetry Grid */}
             <div className="grid grid-cols-3 gap-1.5 bg-crust/50 border border-surface0/30 rounded-xl p-2 items-center text-center">
                 <div className="flex flex-col items-center gap-0.5 text-[10px] text-overlay select-none">
                     <span className="mono uppercase tracking-wider text-[7px] font-bold text-overlay/80">Current</span>
@@ -191,7 +195,7 @@ export default function TargetCard({ target }: Props) {
                         <span className="mono font-bold text-[11px]">{target.motorCurrentA.toFixed(1)}A</span>
                     </div>
                 </div>
-                
+
                 <div className="flex flex-col items-center gap-0.5 text-[10px] text-overlay select-none">
                     <span className="mono uppercase tracking-wider text-[7px] font-bold text-overlay/80">Solar</span>
                     <div className="flex items-center gap-1 text-text mt-0.5">
@@ -208,7 +212,6 @@ export default function TargetCard({ target }: Props) {
                 </div>
             </div>
 
-            {/* Fault chip */}
             {target.fault && target.faultCode && (
                 <div className="flex items-center gap-1.5 bg-red/10 border border-red/20 rounded-lg px-2.5 py-1">
                     <AlertTriangle size={11} className="text-red animate-pulse" />
@@ -216,7 +219,6 @@ export default function TargetCard({ target }: Props) {
                 </div>
             )}
 
-            {/* Control buttons */}
             <div className="grid grid-cols-3 gap-1.5 mt-auto pt-2 border-t border-surface0/30">
                 <button
                     onClick={() => sendCmd("raise")}
@@ -229,7 +231,7 @@ export default function TargetCard({ target }: Props) {
                     )}
                 >
                     {pending === "raise" ? (
-                        <span className="text-yellow animate-pulse flex items-center gap-1 font-bold">● ● ●</span>
+                        <span className="text-yellow animate-pulse flex items-center gap-1 font-bold">...</span>
                     ) : (
                         <><ChevronUp size={14} /><span>RAISE</span></>
                     )}
@@ -246,7 +248,7 @@ export default function TargetCard({ target }: Props) {
                     )}
                 >
                     {pending === "stop" ? (
-                        <span className="text-yellow animate-pulse flex items-center gap-1 font-bold">● ● ●</span>
+                        <span className="text-yellow animate-pulse flex items-center gap-1 font-bold">...</span>
                     ) : (
                         <><Square size={10} /><span>STOP</span></>
                     )}
@@ -263,7 +265,7 @@ export default function TargetCard({ target }: Props) {
                     )}
                 >
                     {pending === "lower" ? (
-                        <span className="text-yellow animate-pulse flex items-center gap-1 font-bold">● ● ●</span>
+                        <span className="text-yellow animate-pulse flex items-center gap-1 font-bold">...</span>
                     ) : (
                         <><ChevronDown size={14} /><span>LOWER</span></>
                     )}
