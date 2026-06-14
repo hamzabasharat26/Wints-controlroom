@@ -29,7 +29,13 @@ export default function BrokerConnect({ defaultOpen = false }: Props) {
     }, []);
 
     const handleConnect = () => {
-        store.connect(host, parseInt(port), username, password);
+        const normalizedHost = host
+            .trim()
+            .replace(/^wss?:\/\//i, "")
+            .replace(/^https?:\/\//i, "")
+            .split("/")[0] ?? "";
+
+        store.connect(normalizedHost, parseInt(port), username.trim(), password.trim());
         setShow(false);
     };
 
@@ -68,6 +74,9 @@ export default function BrokerConnect({ defaultOpen = false }: Props) {
                         HiveMQ Cloud Free <ExternalLink size={10} />
                     </a>{" "}
                     for a free WebSocket MQTT broker.
+                </p>
+                <p className="text-[10px] text-overlay mb-4 mono">
+                    Tip: host should look like <span className="text-text">abc123.s1.eu.hivemq.cloud</span> (no https:// or /mqtt)
                 </p>
 
                 <div className="flex flex-col gap-3">

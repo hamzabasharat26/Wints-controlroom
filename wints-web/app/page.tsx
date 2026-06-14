@@ -11,12 +11,27 @@ import { useEffect } from "react";
 
 const TARGET_IDS = Array.from({ length: 10 }, (_, i) => `T-${String(i + 1).padStart(2, "0")}`);
 
-const brokerConfigured = Boolean(
-    process.env.NEXT_PUBLIC_MQTT_HOST &&
-    process.env.NEXT_PUBLIC_MQTT_PORT &&
-    process.env.NEXT_PUBLIC_MQTT_USERNAME &&
-    process.env.NEXT_PUBLIC_MQTT_PASSWORD,
-);
+const isPlaceholderValue = (value?: string): boolean => {
+    const v = (value ?? "").trim().toLowerCase();
+    return (
+        !v ||
+        v.includes("your_cluster") ||
+        v.includes("your-broker") ||
+        v.includes("placeholder") ||
+        v.includes("example")
+    );
+};
+
+const envHost = process.env.NEXT_PUBLIC_MQTT_HOST;
+const envPort = process.env.NEXT_PUBLIC_MQTT_PORT;
+const envUser = process.env.NEXT_PUBLIC_MQTT_USERNAME;
+const envPass = process.env.NEXT_PUBLIC_MQTT_PASSWORD;
+
+const brokerConfigured =
+    !isPlaceholderValue(envHost) &&
+    !isPlaceholderValue(envPort) &&
+    !isPlaceholderValue(envUser) &&
+    !isPlaceholderValue(envPass);
 
 const STATUS_COPY: Record<string, { label: string; accent: string; detail: string }> = {
     connected: { label: "Connected", accent: "text-green", detail: "Commands are live." },
@@ -32,13 +47,14 @@ export default function Home() {
         : { label: "Setup required", accent: "text-yellow", detail: "Add MQTT broker variables in Vercel." };
     const onlineCount = store.getOnlineCount();
     const faultCount = store.getFaultCount();
+    const latestError = store.events.find((e) => e.type === "error")?.message;
 
     // Auto-connect from env vars on mount
     useEffect(() => {
-        const host = process.env.NEXT_PUBLIC_MQTT_HOST;
-        const port = parseInt(process.env.NEXT_PUBLIC_MQTT_PORT ?? "8884");
-        const user = process.env.NEXT_PUBLIC_MQTT_USERNAME;
-        const pass = process.env.NEXT_PUBLIC_MQTT_PASSWORD;
+        const host = envHost;
+        const port = parseInt(envPort ?? "8884");
+        const user = envUser;
+        const pass = envPass;
         if (host && user && pass && store.connection === "disconnected") {
             store.connect(host, port, user, pass);
         }
@@ -171,6 +187,26 @@ export default function Home() {
                                     <span className="rounded-full border border-yellow/25 bg-crust/70 px-3 py-1">NEXT_PUBLIC_MQTT_PASSWORD</span>
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {brokerConfigured && (store.connection === "disconnected" || store.connection === "error") && (
+                        <div className="lg:col-span-3 glass-card rounded-2xl border border-red/35 bg-red/10 p-4 shadow-lg">
+                            <div className="text-[10px] uppercase tracking-[0.25em] text-red mono font-bold">
+                                Connection troubleshooting
+                            </div>
+                            <h2 className="mt-2 text-lg font-black text-text">
+                                Broker values exist, but connection is failing
+                            </h2>
+                            <p className="mt-2 text-sm text-overlay max-w-3xl leading-relaxed">
+                                Verify host, port, username, and password. Host must be only the domain (no protocol, no path),
+                                and secure WebSocket port is usually <span className="mono text-text font-bold">8884</span>.
+                            </p>
+                            {latestError && (
+                                <div className="mt-3 rounded-lg border border-red/30 bg-crust/70 px-3 py-2 text-xs mono text-red break-all">
+                                    Last error: {latestError}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

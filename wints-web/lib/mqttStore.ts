@@ -113,13 +113,47 @@ class WINTSStore {
 
     // ── MQTT connection ───────────────────────────────────────────────────────
 
+    private normalizeHost(host: string): string {
+        const raw = host.trim();
+        const withoutProtocol = raw.replace(/^wss?:\/\//i, "").replace(/^https?:\/\//i, "");
+        const withoutPath = withoutProtocol.split("/")[0] ?? "";
+        return withoutPath.trim();
+    }
+
+    private isPlaceholder(value: string): boolean {
+        const v = value.trim().toLowerCase();
+        return (
+            !v ||
+            v.includes("your_cluster") ||
+            v.includes("your-broker") ||
+            v.includes("example") ||
+            v.includes("placeholder")
+        );
+    }
+
     connect(host: string, port: number, username: string, password: string) {
         if (this.client) return;
+
+        const normalizedHost = this.normalizeHost(host);
+        const normalizedPort = Number.isFinite(port) ? Math.trunc(port) : NaN;
+
+        if (
+            this.isPlaceholder(normalizedHost) ||
+            !Number.isFinite(normalizedPort) ||
+            normalizedPort <= 0 ||
+            this.isPlaceholder(username) ||
+            this.isPlaceholder(password)
+        ) {
+            this.connection = "error";
+            this.addEvent("error", "Broker config is invalid. Open Configure Broker and enter real values.");
+            this.notify();
+            return;
+        }
 
         this.connection = "connecting";
         this.notify();
 
-        const url = `wss://${host}:${port}/mqtt`;
+        const url = `wss://${normalizedHost}:${normalizedPort}/mqtt`;
 
         this.client = mqtt.connect(url, {
             username,
